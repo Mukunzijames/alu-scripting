@@ -1,32 +1,33 @@
+#!/usr/bin/python3
+""" 2-recurse.py """
 import requests
 
+
 def recurse(subreddit, hot_list=[], after=None):
-    # Set up the URL to make a request to Reddit's hot posts
-    url = f"https://www.reddit.com/r/{subreddit}/hot.json"
+    """ returns list with titles of all hot articles in a subreddit """
+    url = 'https://www.reddit.com/r/{}/hot.json'.format(subreddit)
     headers = {'User-Agent': 'Mozilla/5.0'}
-    
-    # Set the parameters for pagination (after indicates the next page)
-    params = {'limit': 100, 'after': after}
-    
-    # Make the request to the Reddit API
-    try:
-        response = requests.get(url, headers=headers, params=params, allow_redirects=False)
-        if response.status_code != 200:
-            return None
+    params = {'after': after}
+    response = requests.get(
+        url,
+        headers=headers,
+        params=params,
+        allow_redirects=False
+    )
+    if response.status_code == 200:
         data = response.json().get('data')
-        
-        # Add the titles of the current page's hot articles to the hot_list
-        hot_list += [child['data']['title'] for child in data['children']]
-        
-        # Check if there's another page to fetch, using 'after'
-        after = data.get('after')
-        if after is None:
-            # Base case: no more pages to fetch
-            return hot_list
+        if data is not None:
+            children = data.get('children')
+            if children is not None:
+                for child in children:
+                    hot_list.append(child.get('data').get('title'))
+                after = data.get('after')
+                if after is not None:
+                    return recurse(subreddit, hot_list, after)
+                else:
+                    return hot_list
         else:
-            # Recursive case: fetch the next page
-            return recurse(subreddit, hot_list, after)
-    
-    except Exception as e:
-        # Handle any exceptions, such as connection errors or JSON parsing errors
+            return hot_list
+    else:
         return None
+    
